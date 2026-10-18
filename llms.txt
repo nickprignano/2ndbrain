@@ -1,0 +1,36 @@
+# my-kb: project knowledge base
+
+> A living knowledge base of findings, gotchas and decisions for this project.
+
+The knowledge base is in docs/knowledge/. Every page starts with YAML front matter (title, summary,
+topic, status, last_reviewed) validated against docs/knowledge/schema/. Pages with status `plan`
+describe intended work, not facts, and claims marked *unverified* are not yet confirmed. To
+contribute, open a KB feedback or known-error issue; changes land only through reviewed pull requests.
+
+## Knowledge base
+
+- [Knowledge base](docs/knowledge/README.md): What this knowledge base is, how it's organised, and how to add to it safely (status: partial)
+- [Getting started](docs/knowledge/getting-started/README.md): A starter topic page: replace it with your project's first real topic (status: partial)
+- [Known errors](docs/knowledge/troubleshooting/README.md): Errors hit in this project: symptom, cause, fix and source (status: partial)
+- [Roadmap](docs/knowledge/roadmap/README.md): What this knowledge base plans to cover next (status: plan)
+- [Keeping the knowledge base current](docs/knowledge/curation.md): How the KB stays current: the weekly digest, the prior-art check, the feedback loop, the freshness check and family alignment (status: verified)
+- [Experts we follow](docs/knowledge/experts.md): How we choose which people on this KB's topics the KB follows: the method, the scores and the list (status: verified)
+
+## Structured data
+
+- [Known errors](docs/knowledge/troubleshooting/known-errors.yaml): symptom, cause, fix and source for errors hit in this project
+- [Field reports](docs/knowledge/field-reports.yaml): what worked or broke when someone followed the KB
+- [Experts study](docs/knowledge/experts.yaml): people the KB follows, with scores, evidence and the feeds watched
+- [Family](docs/knowledge/family.yaml): the sibling knowledge bases and the format version each follows
+- [Schemas](docs/knowledge/schema/page.schema.json): JSON Schemas for page front matter and the YAML files above
+
+## Decisions
+
+- [0001. Adopt the 2ndbrain knowledge base format, version 1](docs/knowledge/decisions/0001-adopt-the-2ndbrain-format.md): proposed
+
+## Related knowledge bases
+
+
+## Optional
+
+- [Curator sources](docs/knowledge/sources.toml): the feeds and repos the weekly digest watches
