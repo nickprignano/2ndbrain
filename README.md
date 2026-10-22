@@ -12,11 +12,14 @@ The full system is in [docs/2ndbrain/SPEC.md](docs/2ndbrain/SPEC.md). Agents fol
 It sets up one of two ways, and **private is the default**:
 
 - **Private:** the knowledge base plus a private wisdom layer above your public KBs: lessons, root
-  causes, procedures, decisions, goals, disagreements and the patterns you notice across projects
-  ([notes/](notes/capture-rules.md)). Only short directives you approve ever leave it
+  causes, procedures, decisions, goals, disagreements, parked side ideas and the patterns you notice
+  across projects ([notes/](notes/capture-rules.md)). Only short directives you approve ever leave it
   ([outbox/](outbox/README.md)).
 - **Public:** the knowledge base alone, for a project you work on in the open. Setup removes the
   private layer for good.
+- **Sandbox:** a private repo where assistants from other vendors can work on material that's safe
+  to share with them, out of reach of your private layer. Setup removes the private layer and puts
+  the sandbox rules at the top of AGENTS.md ([sandbox/](sandbox/README.md)).
 
 ## Start your own
 
@@ -27,6 +30,7 @@ It sets up one of two ways, and **private is the default**:
    ```bash
    python3 scripts/setup.py            # private (the default): checks GitHub agrees the repo is private
    python3 scripts/setup.py --public   # public: removes notes/, outbox/ and hub.toml
+   python3 scripts/setup.py --sandbox  # sandbox: private, no private layer, rules for outside agents
    ```
 
    The `privacy` workflow fails any public repo that still has the private layer, and a public
