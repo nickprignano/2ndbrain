@@ -30,7 +30,7 @@ CODE_EXTENSIONS = ("py", "ts", "js")
 def search_kb(terms: list[str]) -> list[str]:
     hits = []
     for md in sorted(KB_DIR.rglob("*.md")):
-        for n, line in enumerate(md.read_text().splitlines(), 1):
+        for n, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
             if all(t.lower() in line.lower() for t in terms):
                 hits.append(f"- `{md.relative_to(ROOT)}:{n}` {line.strip()[:160]}")
     return hits
@@ -45,12 +45,20 @@ def section(title: str, fn) -> list[str]:
 
 
 def repos(query: str, limit: int) -> list[str]:
-    data = github("/search/repositories", {"q": query, "sort": "stars", "per_page": limit})
-    return [
-        f"- [{r['full_name']}]({r['html_url']}) · {r['stargazers_count']}★ · "
-        f"updated {r['pushed_at'][:10]}" + (f" · {r['description']}" if r.get("description") else "")
-        for r in data.get("items", [])
-    ]
+    # Best match first, then most stars: stars alone ranks hyped repos above the vetted ones.
+    seen, rows = set(), []
+    for label, params in (("best match", {}), ("most stars", {"sort": "stars"})):
+        data = github("/search/repositories", {"q": query, "per_page": limit, **params})
+        for r in data.get("items", []):
+            if r["full_name"] in seen:
+                continue
+            seen.add(r["full_name"])
+            rows.append(
+                f"- [{r['full_name']}]({r['html_url']}) · {r['stargazers_count']}★ · "
+                f"updated {r['pushed_at'][:10]} · {label}"
+                + (f" · {r['description']}" if r.get("description") else "")
+            )
+    return rows
 
 
 def code(query: str, limit: int) -> list[str]:
@@ -98,7 +106,7 @@ def main() -> int:
 
     sys.stdout.write(report)
     if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(summary, "a") as fh:
+        with open(summary, "a", encoding="utf-8") as fh:
             fh.write(report)
     return 0
 
