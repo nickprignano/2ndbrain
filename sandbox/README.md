@@ -2,14 +2,17 @@
 
 `python3 scripts/setup.py --sandbox` turns a fresh, private copy of the template into a place where
 assistants from other vendors (a coding CLI, a chat assistant with repo access) can work without
-reaching your private layer. Setup adds [RULES.md](RULES.md) to the top of `AGENTS.md`, writes a
-`GEMINI.md` that imports `AGENTS.md`, removes the private layer, and removes kb-auto-merge, since an
+reaching your private layer. Setup adds [RULES.md](RULES.md) to the top of `AGENTS.md`, writes the
+same rules to `GEMINI.md` (then an import of `AGENTS.md`) and `.agents/rules/sandbox.md` for Gemini
+and Antigravity, removes the private layer, and removes kb-auto-merge, since an
 agent's pull request opened with your token would count as yours. To stop the scheduled KB runs
 too, set the repository variable `KB_PAUSED` to `true` (Settings > Secrets and variables > Actions >
 Variables).
 
 Keep the repo private, but treat everything in it as shared with every agent you let in, and with
 their vendors.
+
+Antigravity is a desktop app, so it needs its own setup: see [ANTIGRAVITY.md](ANTIGRAVITY.md).
 
 ## What goes in: the seed rule
 
@@ -61,19 +64,64 @@ yourself on a fresh clone.
   secrets to the repos that need them and turn dotfiles off, or use dotfiles with nothing private.
 - **Give a CLI agent a fine-grained token for this repo only.** Create it under your personal
   account with repository access set to "Only select repositories" and this one picked, plus any
-  account permission the agent's docs ask for. Store it as a Codespaces secret limited to this repo.
+  account permission the agent's docs ask for. Leave out the Workflows permission, so it can't
+  change CI. Store it as a Codespaces secret limited to this repo.
   Check it once by asking for a private repo it must not reach:
   `GH_TOKEN=<that token> gh api repos/<you>/<a-private-repo>` should answer 404. Give it a short
   expiry, and keep any overage budget for the agent's paid requests at zero.
 - **Set no other Codespaces secrets for this repo.** An agent can read every environment variable.
 - **Commit with your GitHub noreply address** (Settings > Emails), so commit metadata doesn't carry
   your real one.
-- **Not on your own computer.** A local agent falls back to your stored GitHub login and can read
-  any folder you can, including clones of your private repos and its own user-level config. If you
-  must, use a separate computer account with no Git credentials and no private clones.
+- **On your own computer, only in a separate computer account** (for a desktop IDE such as
+  Antigravity, see [ANTIGRAVITY.md](ANTIGRAVITY.md)) **or a plain Docker terminal** (next section).
+  Run directly in your own account, an agent falls back to your stored GitHub login and can read
+  any folder you can.
 - **Stronger still: a second GitHub account** that owns only the sandbox. Its login, Codespaces
   settings and agent subscriptions can't reach your repos at all, and its pull requests aren't
   yours.
+
+## Running the agents on your own computer
+
+Use Docker (Docker Desktop on Windows or macOS, version 4.44.3 or later: older versions let any
+container reach the Docker engine and your files). Don't open the container in VS Code: an attached
+VS Code leaves sockets in the container that hand out your host GitHub login, whatever its
+settings say. Don't clone the sandbox onto your computer either: an agent could plant git hooks or
+config there that run the next time you use git in that folder. The repo lives in a Docker volume,
+and nothing from your computer is shared with the container.
+
+Once, build the image from the template's public `.devcontainer/` folder and make the volume
+(the same commands work in PowerShell and in a macOS terminal):
+
+```bash
+docker build -t agent-sandbox https://github.com/<template-owner>/<template-repo>.git#main:.devcontainer
+docker volume create agent-sandbox
+```
+
+Each session:
+
+```bash
+docker run --rm -it --security-opt no-new-privileges -v agent-sandbox:/home/node agent-sandbox bash
+```
+
+The first time, inside the container: sign in with the fine-grained token (paste it at the
+prompt), clone, and check the token can't see your private repos:
+
+```bash
+gh auth login --with-token        # paste the sandbox-only token, then Enter and Ctrl-D
+gh auth setup-git
+gh repo clone <you>/<sandbox>
+gh api repos/<you>/<a-private-repo> --silent; echo $?   # must fail with a 404
+```
+
+`copilot` and `gemini` are installed. Copilot CLI uses gh's token. Gemini CLI no longer serves a
+Google sign-in on personal plans (unverified, see [ANTIGRAVITY.md](ANTIGRAVITY.md)), so give it a
+paid API key from a separate Google Cloud project (`export GEMINI_API_KEY=...` inside the
+container), never your main Google sign-in. Everything, the token included, stays in the
+`agent-sandbox` volume; `docker volume rm agent-sandbox` wipes it, and revoking the token cuts it
+off. Rebuild the image to pick up new CLI versions.
+
+The `.devcontainer/` in this repo is for Codespaces. CI fails if it gains keys that mount host
+paths, run commands on the host, widen the container or reach other repos.
 
 ## Folders
 
