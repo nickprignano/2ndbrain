@@ -23,7 +23,7 @@ class Kit(unittest.TestCase):
         for rel in ["notes/lessons/_template.md", "notes/index.md", "outbox/README.md", "hub.toml",
                     "scripts/notes.py", ".github/workflows/rollup.yml", ".github/workflows/template-sync.yml",
                     ".github/workflows/kb-auto-merge.yml", ".github/workflows/kb-validate.yml",
-                    "sandbox/RULES.md", "sandbox/tasks/_template.md"]:
+                    "sandbox/RULES.md", "sandbox/tasks/_template.md", ".devcontainer/devcontainer.json"]:
             p = self.root / rel
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text("## Lessons\n" if rel.endswith("index.md") else "x\n")
@@ -116,6 +116,7 @@ class SetupTests(Kit):
         self.git_origin()
         setup.setup_private(self.root, status=lambda r: 404)
         self.assertFalse((self.root / "sandbox").exists())
+        self.assertFalse((self.root / ".devcontainer").exists())
         setup.setup_public(self.root)
         self.assertFalse((self.root / "sandbox").exists())
 
@@ -137,7 +138,9 @@ class SandboxTests(Kit):
         agents = (self.root / "AGENTS.md").read_text()
         self.assertTrue(agents.startswith("# Instructions\n\n" + pc.SANDBOX_MARK))
         self.assertIn("The rest.", agents)
-        self.assertEqual((self.root / "GEMINI.md").read_text(), setup.GEMINI)
+        gemini = (self.root / setup.GEMINI).read_text()
+        self.assertTrue(gemini.startswith("x\n") and gemini.endswith("@AGENTS.md\n"))
+        self.assertTrue((self.root / setup.AG_RULES).read_text().startswith("x\n"))
         self.assertTrue(pc.is_sandbox(self.root))
         self.assertEqual(setup.setup_sandbox(self.root, status=lambda r: 404), [])  # again: no-op
         self.assertEqual(agents.count(pc.SANDBOX_MARK), 1)
@@ -196,9 +199,11 @@ class SandboxTests(Kit):
         errors, _ = pc.check_local(self.root, status=lambda r: 404, words=["bluebird"])
         self.assertIn("git history or a branch name", errors[0])
         dc = self.root / ".devcontainer/devcontainer.json"
-        dc.parent.mkdir()
+        self.assertTrue(dc.exists())
         dc.write_text('{"customizations": {"codespaces": {"repositories": {"octo/vault": {}}}}}')
-        self.assertIn("other repos", pc.check_ci(True, False, self.root)[0])
+        self.assertIn("sets repositories", pc.check_ci(True, False, self.root)[0])
+        dc.write_text('{"initializeCommand": "calc.exe", "mounts": ["source=C:/,target=/c,type=bind"]}')
+        self.assertIn("sets initializeCommand, mounts", pc.check_ci(True, False, self.root)[0])
 
 
 if __name__ == "__main__":
